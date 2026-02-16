@@ -412,7 +412,10 @@
       cursor:pointer;
       transition: transform .08s ease, background .12s ease;
       flex: 0 0 auto;
+      font-size: 13px;
+      line-height: 1;
     }
+    #downloads { margin-top: 16px; }
     html[data-theme="light"] .dl-btn{ background: rgba(0,0,0,.04); }
     
     .dl-btn:hover{ background: rgba(255,255,255,.10); }
@@ -426,6 +429,28 @@
       fill: currentColor;
       opacity: .9;
     }
+
+    .zip-btn{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 12px;
+      border: 1px solid var(--border2);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      text-decoration:none;
+      font-weight: 650;
+      font-size: 12px;
+      line-height: 1;
+      cursor:pointer;
+      transition: transform .08s ease, background .12s ease;
+    }
+    html[data-theme="light"] .zip-btn{ background: rgba(0,0,0,.04); }
+    .zip-btn:hover{ background: rgba(255,255,255,.10); }
+    html[data-theme="light"] .zip-btn:hover{ background: rgba(0,0,0,.06); }
+    .zip-btn:active{ transform: translateY(1px); }
+    .zip-btn svg{ width: 16px; height: 16px; fill: currentColor; opacity: .9; }
   </style>
 
   <script>
@@ -523,15 +548,24 @@
           <div class="meta" id="info">Max Upload: 25 MB</div>
           <div class="err" id="err"></div>
 
-          <div class="result-head">
-            <div class="result-title">Downloads</div>
-            <div class="controls" style="margin-top:0">
-              <a id="zipAll" href="#" style="display:none"><button type="button" class="btn">Alles als ZIP</button></a>
-            </div>
-          </div>
-          
-          <div class="download-list" id="list"></div>
         </div>
+      <!-- Downloads (hidden until results exist) -->
+      <div id="downloads" style="display:none">
+        <div class="result-head">
+          <div class="result-title">Downloads</div>
+          <div class="controls" style="margin-top:0">
+            <a id="zipAll" class="zip-btn" href="#" style="display:none" aria-label="Alles als ZIP" title="Alles als ZIP">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 3h10a2 2 0 0 1 2 2v2h-2V5H7v2H5V5a2 2 0 0 1 2-2z"/>
+                <path d="M6 8h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2zm0 2v9h12v-9H6z"/>
+                <path d="M9 12h6v2H9v-2zm0 4h6v2H9v-2z"/>
+              </svg>
+              <span>ZIP</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="download-list" id="list"></div>
       </div>
     </div>
 
@@ -546,12 +580,9 @@
         const info = document.getElementById('info');
         const err = document.getElementById('err');
     
-        const resultBox = document.getElementById('result');
         const list = document.getElementById('list');
-        const ridEl = document.getElementById('rid');
-        const ttlEl = document.getElementById('ttl');
         const zipAll = document.getElementById('zipAll');
-        const resetBtn = document.getElementById('reset');
+        const downloadsBox = document.getElementById('downloads');
     
         let currentFile = null;
     
@@ -575,18 +606,18 @@
           uploadBtn.disabled = true;
           setError('');
           setBusy(false);
-    
-          resultBox.style.display = 'none';
+
+          downloadsBox.style.display = 'none';
           list.innerHTML = '';
           zipAll.style.display = 'none';
           zipAll.href = '#';
-          ridEl.textContent = '';
-          ttlEl.textContent = '';
+
           info.textContent = 'Max Upload: 25 MB';
         }
     
         function setSelected(file){
           currentFile = file;
+          downloadsBox.style.display = 'none';
           uploadBtn.disabled = !file;
           setError('');
           if (file) {
@@ -669,7 +700,11 @@
               </svg>`;
     
               const data = JSON.parse(xhr.responseText);
-              
+              if (!data.files || data.files.length === 0) {
+                downloadsBox.style.display = 'none';
+                setTimeout(() => setBusy(false), 250);
+                return;
+              }
               list.innerHTML = '';
               
               for (const f of data.files) {
@@ -693,9 +728,9 @@
     
               zipAll.href = data.baseUrl + '/zip';
               zipAll.style.display = data.files.length > 1 ? 'inline-block' : 'none';
-    
-              resultBox.style.display = 'block';
-    
+
+              downloadsBox.style.display = 'block';
+
               // Progress nach erfolgreichem Abschluss ausblenden
               setTimeout(() => setBusy(false), 250);
             } else {
@@ -708,7 +743,6 @@
           xhr.send(fd);
         });
     
-        resetBtn.addEventListener('click', resetUI);
     
         resetUI();
       })();
