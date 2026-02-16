@@ -372,6 +372,60 @@
     html[data-theme="light"] .tbtn[aria-pressed="true"]{
       background: rgba(0,0,0,.05);
     }
+    .download-list{
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    
+    .dl-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    
+    .dl-name{
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+      font-weight: 600;
+    }
+    
+    .dl-btn{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border2);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      text-decoration:none;
+      font-weight: 650;
+      cursor:pointer;
+      transition: transform .08s ease, background .12s ease;
+      flex: 0 0 auto;
+    }
+    html[data-theme="light"] .dl-btn{ background: rgba(0,0,0,.04); }
+    
+    .dl-btn:hover{ background: rgba(255,255,255,.10); }
+    html[data-theme="light"] .dl-btn:hover{ background: rgba(0,0,0,.06); }
+    
+    .dl-btn:active{ transform: translateY(1px); }
+    
+    .dl-btn svg{
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+      opacity: .9;
+    }
   </style>
 
   <script>
@@ -469,19 +523,14 @@
           <div class="meta" id="info">Max Upload: 25 MB</div>
           <div class="err" id="err"></div>
 
-          <div id="result">
-            <div class="result-head">
-              <div class="result-title">
-                Ergebnis <span class="pill" id="rid"></span>
-              </div>
-              <div class="controls" style="margin-top:0">
-                <a id="zipAll" href="#" style="display:none"><button type="button" class="btn">Alles als ZIP</button></a>
-                <button type="button" class="btn" id="reset">Neuer Upload</button>
-              </div>
+          <div class="result-head">
+            <div class="result-title">Downloads</div>
+            <div class="controls" style="margin-top:0">
+              <a id="zipAll" href="#" style="display:none"><button type="button" class="btn">Alles als ZIP</button></a>
             </div>
-            <div class="meta" id="ttl"></div>
-            <ul id="list"></ul>
           </div>
+          
+          <div class="download-list" id="list"></div>
         </div>
       </div>
     </div>
@@ -612,20 +661,34 @@
     
             if (xhr.status >= 200 && xhr.status < 300) {
               setProgress(100);
+
+              const icon = `
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3a1 1 0 0 1 1 1v9.6l2.3-2.3a1 1 0 1 1 1.4 1.4l-4.0 4.0a1 1 0 0 1-1.4 0l-4.0-4.0a1 1 0 1 1 1.4-1.4L11 13.6V4a1 1 0 0 1 1-1z"/>
+                <path d="M5 19a2 2 0 0 1-2-2v-1a1 1 0 1 1 2 0v1h14v-1a1 1 0 1 1 2 0v1a2 2 0 0 1-2 2H5z"/>
+              </svg>`;
     
               const data = JSON.parse(xhr.responseText);
-              ridEl.textContent = 'ID: ' + data.id;
-              ttlEl.textContent = 'Ergebnisse sind ca. ' + data.ttlMinutes + ' Minuten verfügbar.';
-    
+              
               list.innerHTML = '';
+              
               for (const f of data.files) {
-                const li = document.createElement('li');
+                const row = document.createElement('div');
+                row.className = 'dl-row';
+              
+                const name = document.createElement('div');
+                name.className = 'dl-name';
+                name.textContent = f;
+              
                 const a = document.createElement('a');
+                a.className = 'dl-btn';
                 a.href = data.baseUrl + '/file/' + encodeURIComponent(f);
-                a.textContent = f;
-                a.download = f;
-                li.appendChild(a);
-                list.appendChild(li);
+                a.setAttribute('download', f);
+                a.innerHTML = icon + '<span>Download</span>';
+              
+                row.appendChild(name);
+                row.appendChild(a);
+                list.appendChild(row);
               }
     
               zipAll.href = data.baseUrl + '/zip';
