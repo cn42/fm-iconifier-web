@@ -317,23 +317,78 @@
       .card-inner{ padding: 14px; }
       .seg button{ min-width: 56px; }
     }
+
+    /* --- icon-only theme toggle --- */
+    .theme-mini{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      box-shadow: var(--shadow2);
+      backdrop-filter: blur(10px);
+    }
+    
+    .tbtn{
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      transition: background .12s ease, border-color .12s ease, color .12s ease, transform .08s ease;
+    }
+    
+    .tbtn svg{
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+    
+    .tbtn:hover{
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+    }
+    html[data-theme="light"] .tbtn:hover{
+      background: rgba(0,0,0,.04);
+    }
+    
+    .tbtn:active{ transform: translateY(1px); }
+    .tbtn:focus{ outline:none; box-shadow: var(--focus); }
+    
+    .tbtn[aria-pressed="true"]{
+      color: var(--text);
+      border-color: var(--border2);
+      background: rgba(255,255,255,.08);
+    }
+    html[data-theme="light"] .tbtn[aria-pressed="true"]{
+      background: rgba(0,0,0,.05);
+    }
   </style>
 
   <script>
-    // Theme toggle: Auto / Light / Dark (saved in localStorage)
     (function(){
-      const KEY = 'fmconv_theme'; // 'auto' | 'light' | 'dark'
-      function apply(mode){
-        const html = document.documentElement;
-        if (mode === 'light' || mode === 'dark') html.setAttribute('data-theme', mode);
-        else html.removeAttribute('data-theme'); // Auto uses prefers-color-scheme
-        try { localStorage.setItem(KEY, mode); } catch {}
+      const autoBtn = document.getElementById('themeAuto');
+      const lightBtn = document.getElementById('themeLight');
+      const darkBtn = document.getElementById('themeDark');
+  
+      function sync(){
+        const mode = window.__theme.get();
+        autoBtn.setAttribute('aria-pressed', mode === 'auto');
+        lightBtn.setAttribute('aria-pressed', mode === 'light');
+        darkBtn.setAttribute('aria-pressed', mode === 'dark');
       }
-      function get(){
-        try { return localStorage.getItem(KEY) || 'auto'; } catch { return 'auto'; }
-      }
-      window.__theme = { apply, get };
-      apply(get());
+  
+      autoBtn.addEventListener('click', () => { window.__theme.apply('auto'); sync(); });
+      lightBtn.addEventListener('click', () => { window.__theme.apply('light'); sync(); });
+      darkBtn.addEventListener('click', () => { window.__theme.apply('dark'); sync(); });
+  
+      sync();
     })();
   </script>
 </head>
@@ -346,13 +401,29 @@
         <p class="sub">Drag & Drop: <code>.svg</code> oder <code>.zip</code> → konvertierte SVGs direkt herunterladen.</p>
       </div>
 
-      <div class="theme" role="group" aria-label="Darstellung">
-        <div class="theme-label">Darstellung</div>
-        <div class="seg">
-          <button type="button" id="themeAuto" aria-pressed="false">Auto</button>
-          <button type="button" id="themeLight" aria-pressed="false">Hell</button>
-          <button type="button" id="themeDark" aria-pressed="false">Dunkel</button>
-        </div>
+      <div class="theme-mini" role="group" aria-label="Darstellung">
+        <button type="button" class="tbtn" id="themeAuto" aria-pressed="false" aria-label="Auto (System)" title="Auto">
+          <!-- sparkle -->
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2l1.4 5.1L18.5 9l-5.1 1.4L12 15.5l-1.4-5.1L5.5 9l5.1-1.9L12 2z"/>
+            <path d="M19 13l.8 2.8L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.2L19 13z"/>
+          </svg>
+        </button>
+      
+        <button type="button" class="tbtn" id="themeLight" aria-pressed="false" aria-label="Hell" title="Hell">
+          <!-- sun -->
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12z"/>
+            <path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M6.4 17.6 5 19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      
+        <button type="button" class="tbtn" id="themeDark" aria-pressed="false" aria-label="Dunkel" title="Dunkel">
+          <!-- moon -->
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 14.2A8.2 8.2 0 0 1 9.8 3a6.6 6.6 0 1 0 11.2 11.2z"/>
+          </svg>
+        </button>
       </div>
     </header>
 
