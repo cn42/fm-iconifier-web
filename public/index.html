@@ -372,24 +372,41 @@
   </style>
 
   <script>
-    (function(){
-      const autoBtn = document.getElementById('themeAuto');
+    document.addEventListener('DOMContentLoaded', () => {
+      const KEY = 'fmconv_theme'; // auto | light | dark
+      const autoBtn  = document.getElementById('themeAuto');
       const lightBtn = document.getElementById('themeLight');
-      const darkBtn = document.getElementById('themeDark');
+      const darkBtn  = document.getElementById('themeDark');
   
-      function sync(){
-        const mode = window.__theme.get();
+      // Falls IDs nicht gefunden -> nichts tun
+      if (!autoBtn || !lightBtn || !darkBtn) return;
+  
+      function getMode() {
+        try { return localStorage.getItem(KEY) || 'auto'; } catch { return 'auto'; }
+      }
+  
+      function applyMode(mode) {
+        const html = document.documentElement;
+        if (mode === 'light' || mode === 'dark') html.setAttribute('data-theme', mode);
+        else html.removeAttribute('data-theme'); // auto => prefers-color-scheme
+  
+        try { localStorage.setItem(KEY, mode); } catch {}
+        syncButtons(mode);
+      }
+  
+      function syncButtons(mode) {
         autoBtn.setAttribute('aria-pressed', mode === 'auto');
         lightBtn.setAttribute('aria-pressed', mode === 'light');
         darkBtn.setAttribute('aria-pressed', mode === 'dark');
       }
   
-      autoBtn.addEventListener('click', () => { window.__theme.apply('auto'); sync(); });
-      lightBtn.addEventListener('click', () => { window.__theme.apply('light'); sync(); });
-      darkBtn.addEventListener('click', () => { window.__theme.apply('dark'); sync(); });
+      autoBtn.addEventListener('click',  () => applyMode('auto'));
+      lightBtn.addEventListener('click', () => applyMode('light'));
+      darkBtn.addEventListener('click',  () => applyMode('dark'));
   
-      sync();
-    })();
+      // initial
+      applyMode(getMode());
+    });
   </script>
 </head>
 
