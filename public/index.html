@@ -537,7 +537,6 @@
               <button type="button" class="btn" id="pick">Datei auswählen</button>
             </label>
             <input id="file" type="file" accept=".svg,.zip,image/svg+xml,application/zip" />
-            <button type="button" class="btn btn-primary" id="upload" disabled>Konvertieren</button>
           </div>
 
           <div class="progress" aria-label="Fortschritt">
@@ -547,25 +546,26 @@
 
           <div class="meta" id="info">Max Upload: 25 MB</div>
           <div class="err" id="err"></div>
-
         </div>
-      <!-- Downloads (hidden until results exist) -->
-      <div id="downloads" style="display:none">
-        <div class="result-head">
-          <div class="result-title">Downloads</div>
-          <div class="controls" style="margin-top:0">
-            <a id="zipAll" class="zip-btn" href="#" style="display:none" aria-label="Alles als ZIP" title="Alles als ZIP">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M7 3h10a2 2 0 0 1 2 2v2h-2V5H7v2H5V5a2 2 0 0 1 2-2z"/>
-                <path d="M6 8h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2zm0 2v9h12v-9H6z"/>
-                <path d="M9 12h6v2H9v-2zm0 4h6v2H9v-2z"/>
-              </svg>
-              <span>ZIP</span>
-            </a>
+
+        <!-- Downloads (hidden until results exist) -->
+        <div id="downloads" style="display:none">
+          <div class="result-head">
+            <div class="result-title">Downloads</div>
+            <div class="controls" style="margin-top:0">
+              <a id="zipAll" class="zip-btn" href="#" style="display:none" aria-label="Alles als ZIP" title="Alles als ZIP">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 3h10a2 2 0 0 1 2 2v2h-2V5H7v2H5V5a2 2 0 0 1 2-2z"/>
+                  <path d="M6 8h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2zm0 2v9h12v-9H6z"/>
+                  <path d="M9 12h6v2H9v-2zm0 4h6v2H9v-2z"/>
+                </svg>
+                <span>ZIP</span>
+              </a>
+            </div>
           </div>
-        </div>
 
-        <div class="download-list" id="list"></div>
+          <div class="download-list" id="list"></div>
+        </div>
       </div>
     </div>
 
@@ -574,38 +574,38 @@
         const drop = document.getElementById('drop');
         const fileInput = document.getElementById('file');
         const pickBtn = document.getElementById('pick');
-        const uploadBtn = document.getElementById('upload');
         const bar = document.getElementById('bar');
         const pct = document.getElementById('pct');
         const info = document.getElementById('info');
         const err = document.getElementById('err');
-    
+
         const list = document.getElementById('list');
         const zipAll = document.getElementById('zipAll');
         const downloadsBox = document.getElementById('downloads');
-    
+
         let currentFile = null;
-    
+        let isConverting = false;
+
         function setError(msg){ err.textContent = msg || ''; }
-    
+
         function setProgress(p){
           const v = Math.max(0, Math.min(100, p || 0));
           bar.style.width = v + '%';
           pct.textContent = v.toFixed(0) + '%';
         }
-    
+
         function setBusy(isBusy){
           drop.classList.toggle('is-busy', !!isBusy);
           // Nur beim Busy-Status Progress sichtbar (CSS übernimmt Anzeige)
           if (!isBusy) setProgress(0);
         }
-    
+
         function resetUI(){
           currentFile = null;
           fileInput.value = '';
-          uploadBtn.disabled = true;
           setError('');
           setBusy(false);
+          isConverting = false;
 
           downloadsBox.style.display = 'none';
           list.innerHTML = '';
@@ -614,19 +614,20 @@
 
           info.textContent = 'Max Upload: 25 MB';
         }
-    
+
         function setSelected(file){
           currentFile = file;
           downloadsBox.style.display = 'none';
-          uploadBtn.disabled = !file;
           setError('');
           if (file) {
             info.textContent = 'Ausgewählt: ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)';
+            // start conversion immediately
+            setTimeout(startConvert, 0);
           } else {
             info.textContent = 'Max Upload: 25 MB';
           }
         }
-    
+
         // --- Wichtig: Standard-Drag&Drop des Browsers deaktivieren
         // (sonst öffnet der Browser die Datei oder Drop-Events kommen nicht wie erwartet)
         ['dragenter','dragover','dragleave','drop'].forEach(evt => {
@@ -635,21 +636,21 @@
             e.stopPropagation();
           }, { passive: false });
         });
-    
+
         // --- Dropzone Highlight
         drop.addEventListener('dragenter', () => drop.classList.add('drag'));
         drop.addEventListener('dragover',  () => drop.classList.add('drag'));
         drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
         drop.addEventListener('drop', (e) => {
           drop.classList.remove('drag');
-    
+
           const dt = e.dataTransfer;
           if (!dt) return;
-    
+
           const file = (dt.files && dt.files[0]) ? dt.files[0] : null;
           if (file) setSelected(file);
         });
-    
+
         // Optional: Klick irgendwo in die Dropzone öffnet Dateiauswahl
         drop.addEventListener('click', (e) => {
           // Nicht triggern, wenn auf Buttons geklickt wurde
@@ -657,39 +658,42 @@
           if (t && (t.closest && t.closest('button,a,label,input'))) return;
           fileInput.click();
         });
-    
+
         // File picker
         pickBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', () => {
           const f = fileInput.files && fileInput.files[0];
           if (f) setSelected(f);
         });
-    
-        // Convert
-        uploadBtn.addEventListener('click', async () => {
+
+        // Convert logic as function
+        async function startConvert(){
           if (!currentFile) return;
-    
+          if (isConverting) return;
+          isConverting = true;
+
           setError('');
           setBusy(true);
-          setProgress(1); // sichtbar machen
-          uploadBtn.disabled = true;
-    
+          setProgress(1); // make bar visible
+
           const fd = new FormData();
           fd.append('file', currentFile);
-    
+
           const xhr = new XMLHttpRequest();
           xhr.open('POST', '/api/convert', true);
-    
+
           xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) {
-              // Upload bis 90%
+              // upload up to 90%
               setProgress((e.loaded / e.total) * 90);
             }
           };
-    
+
           xhr.onreadystatechange = () => {
             if (xhr.readyState !== 4) return;
-    
+
+            isConverting = false;
+
             if (xhr.status >= 200 && xhr.status < 300) {
               setProgress(100);
 
@@ -698,52 +702,48 @@
                 <path d="M12 3a1 1 0 0 1 1 1v9.6l2.3-2.3a1 1 0 1 1 1.4 1.4l-4.0 4.0a1 1 0 0 1-1.4 0l-4.0-4.0a1 1 0 1 1 1.4-1.4L11 13.6V4a1 1 0 0 1 1-1z"/>
                 <path d="M5 19a2 2 0 0 1-2-2v-1a1 1 0 1 1 2 0v1h14v-1a1 1 0 1 1 2 0v1a2 2 0 0 1-2 2H5z"/>
               </svg>`;
-    
+
               const data = JSON.parse(xhr.responseText);
               if (!data.files || data.files.length === 0) {
                 downloadsBox.style.display = 'none';
                 setTimeout(() => setBusy(false), 250);
                 return;
               }
+
               list.innerHTML = '';
-              
               for (const f of data.files) {
                 const row = document.createElement('div');
                 row.className = 'dl-row';
-              
+
                 const name = document.createElement('div');
                 name.className = 'dl-name';
                 name.textContent = f;
-              
+
                 const a = document.createElement('a');
                 a.className = 'dl-btn';
                 a.href = data.baseUrl + '/file/' + encodeURIComponent(f);
                 a.setAttribute('download', f);
                 a.innerHTML = icon + '<span>Download</span>';
-              
+
                 row.appendChild(name);
                 row.appendChild(a);
                 list.appendChild(row);
               }
-    
+
               zipAll.href = data.baseUrl + '/zip';
               zipAll.style.display = data.files.length > 1 ? 'inline-block' : 'none';
-
               downloadsBox.style.display = 'block';
 
-              // Progress nach erfolgreichem Abschluss ausblenden
               setTimeout(() => setBusy(false), 250);
             } else {
               setError(xhr.responseText || ('Fehler (' + xhr.status + ')'));
-              uploadBtn.disabled = false;
               setBusy(false);
             }
           };
-    
+
           xhr.send(fd);
-        });
-    
-    
+        }
+
         resetUI();
       })();
     </script>
