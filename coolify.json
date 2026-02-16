@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "name": "fm-iconifier-web",
+  "build": {
+    "type": "nixpacks",
+    "install_command": "npm install",
+    "build_command": "npm run build",
+    "start_command": "npm start"
+  },
+  "domains": {
+    "ports_exposes": "3000"
+  },
+  "environment_variables": {
+    "production": [
+      {"key": "MAX_UPLOAD_MB", "value": "MAX_UPLOAD_MB"},
+      {"key": "RESULT_TTL_MS", "value": "RESULT_TTL_MS"}
+    ]
+  }
+}
